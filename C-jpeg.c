@@ -65,7 +65,8 @@ const short quantization_table_chrominance[8][8] = {
 short RGB_image[ MAX ][ MAX ][ 3 ];
 short YUV_image[ MAX ][ MAX ][ 3 ];
 short DCT_image[ MAX ][ MAX ][ 3 ];
-short ZigZag[64];
+short ZigZag_U[64];
+short ZigZag_V[64]
 int N, M;
 
 void generate_YUV_image();
@@ -75,7 +76,8 @@ void read_input();
 void shift_values( int, int );
 
 int main( void ){
-	ZigZag = { 0 };
+	ZigZag_U = { 0 };
+	ZigZag_V = { 0 };
     read_input();
 
     printf( "%d %d\n", N, M );
@@ -118,7 +120,8 @@ int main( void ){
             
             perform_DCT( i, j );
             quantize( i, j );
-			zig_zag(i, j, ZigZag);
+			zig_zag(i, j, ZigZag_U, 1);
+			zig_zag(i, j, ZigZag_V, 2);
         }
 
     return 0;
@@ -257,11 +260,11 @@ void quantize(int x, int y) {
 					quantization_table_chrominance[i][j]);
 }
 
-void zig_zag(int x, int y, int ZZ[64]) {
+void zig_zag(int x, int y, int ZZ[64], int yuv) {
 	int i = x, j = y, k = 0, d = 0;
 	// do dijagonale
 	while (k<36){
-		ZZ[k++] = image[i][j];
+		ZZ[k++] = DCT_image[i][j][yuv];
 		if ((i == 0) && (j % 2 == 0)) {
 			j++;
 			d = 1;
@@ -284,7 +287,7 @@ void zig_zag(int x, int y, int ZZ[64]) {
 	j = 1 + y;
 	d = 0;
 	while (k<64) {
-		ZZ[k++] = image[i][j];
+		ZZ[k++] = DCT_image[i][j][yuv];
 		if ((i == 7) && (j % 2 == 0)) {
 			j++;
 			d = 0;
