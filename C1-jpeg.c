@@ -318,8 +318,11 @@ int getACcode(int n, int a, int lenb, char* b)
 	return lenb;
 }
 
-void Encode(int RL[64], int rl, char* output)
+int Encode(int RL[64], int rl, char* output, int prev_dc)
 {
+	int dc = RL[0];
+	RL[0] -= prev_dc;
+	
 	//   char output[33*26];
 	char b[32];
 	int bLen = 0;
@@ -334,6 +337,7 @@ void Encode(int RL[64], int rl, char* output)
 		strcat(output, b);
 	}
 	//   writeToFile(output);
+	return dc;
 }
 
 
@@ -383,6 +387,12 @@ void read_input1(void) {
 
 
 			fread(&pixel_arrayp[i][j], 3, 1, BMP_in);
+			for (int i1 = 0;i1 < 3;i1++)
+				for (int j1 = 0;j1 < 3;j1++){
+					RGB_image[i][j][0] = pixel_arrayp[i][j].Red;
+					RGB_image[i][j][1] = pixel_arrayp[i][j].Green;
+					RGB_image[1][j][2] = pixel_arrayp[i][j].Blue;
+				}
 
 		}
 		if (padding != 0) {
@@ -390,63 +400,55 @@ void read_input1(void) {
 		}
 	}
 
+
+
 	fclose(BMP_in);
 }
 
+
 int main(void) {
+	short ZigZag_Y[64] = { 0 };
 	short ZigZag_U[64] = { 0 };
 	short ZigZag_V[64] = { 0 };
+	char writecode[100000];
+	writecode[0] = '\0';
+
 	read_input1();
-
-	printf("%d %d\n", N, M);
-
-	puts("RGB:");
-	for (int k = 0; k < 3; ++k) {
-		for (int i = 0; i < N; ++i) {
-			for (int j = 0; j < M; ++j)
-				printf("%6d", RGB_image[i][j][k]);
-			puts("");
-		}
-		puts("");
-	}
+	N = InfoHeader.Height;
+	M = InfoHeader.Width;
 
 	generate_YUV_image();
-
-	puts("YUV:");
-	for (int k = 0; k < 3; ++k) {
-		for (int i = 0; i < N; ++i) {
-			for (int j = 0; j < M; ++j)
-				printf("%6d", YUV_image[i][j][k]);
-			puts("");
-		}
-		puts("");
-	}
-
+	int prev_DC_Y = 0;
+	int prev_DC_U = 0;
+	int prev_DC_V = 0;
+	char code[1000];
 	for (int i = 0; i < N; i += 8)
 		for (int j = 0; j < M; j += 8) {
 			printf("Block (%d, %d):\n", i / 8, j / 8);
 			shift_values(i, j);
-
-			for (int a = 0; a < 3; ++a) {
-				for (int b = 0; b < 8; ++b) {
-					for (int c = 0; c < 8; ++c)
-						printf("%6d", YUV_image[i + b][j + c][a]);
-					puts("");
-				}
-				puts("");
-			}
-
 			perform_DCT(i, j);
 			quantize(i, j);
+			prev_DC_Y = DCT_image[0][0][0];
+			prev_DC_U = DCT_image[0][0][1];
+			prev_DC_V = DCT_image[0][0][2];
+			zig_zag(i, j, ZigZag_Y, 0);
 			zig_zag(i, j, ZigZag_U, 1);
 			zig_zag(i, j, ZigZag_V, 2);
+			int RL[64] = {0};
+			int rl = 0;
+			rl = RLE(ZigZag_Y, RL);			
+			prev_DC_Y = Encode(RL, rl, code, prev_DC_Y);
+			rl = RLE(ZigZag_U, RL);
+			prev_DC_U = Encode(RL, rl, code, prev_DC_U);
+			rl = RLE(ZigZag_V, RL);
+			prev_DC_V = Encode(RL, rl, code, prev_DC_V);
+			strcat(writecode, code);
 		}
 
-	int RL[64];
-	int rl = 0;
-	rl = RLE(ZigZag_U, RL);
-	char code[1000];
-	Encode(RL, rl, code);
+	
+	
+	
+
 	return 0;
 }
 
