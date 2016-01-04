@@ -117,11 +117,11 @@ void quantize(int x, int y) {
 					quantization_table_chrominance[i][j]);
 }
 
-void zig_zag(int x, int y, int ZZ[64], int yuv) {
-	int i = x, j = y, k = 0, d = 0;
+void zig_zag(int x, int y, short ZZ[64], int yuv) {
+	int i = 0, j = 0, k = 0, d = 0;
 	// do dijagonale
 	while (k<36) {
-		ZZ[k++] = DCT_image[i][j][yuv];
+		ZZ[k++] = DCT_image[i + x][j + y][yuv];
 		if ((i == 0) && (j % 2 == 0)) {
 			j++;
 			d = 1;
@@ -144,7 +144,7 @@ void zig_zag(int x, int y, int ZZ[64], int yuv) {
 	j = 1 + y;
 	d = 0;
 	while (k<64) {
-		ZZ[k++] = DCT_image[i][j][yuv];
+		ZZ[k++] = DCT_image[i + x][j + y][yuv];
 		if ((i == 7) && (j % 2 == 0)) {
 			j++;
 			d = 0;
@@ -318,7 +318,7 @@ int getACcode(int n, int a, int lenb, char* b)
 	return lenb;
 }
 
-int Encode(int RL[64], int rl, char* output, int prev_dc)
+int Encode(short* RL, int rl, char* output, int prev_dc)
 {
 	int dc = RL[0];
 	RL[0] -= prev_dc;
@@ -434,7 +434,7 @@ int main(void) {
 			zig_zag(i, j, ZigZag_Y, 0);
 			zig_zag(i, j, ZigZag_U, 1);
 			zig_zag(i, j, ZigZag_V, 2);
-			int RL[64] = {0};
+			short RL[64] = {0};
 			int rl = 0;
 			rl = RLE(ZigZag_Y, RL);			
 			prev_DC_Y = Encode(RL, rl, code, prev_DC_Y);
@@ -443,11 +443,7 @@ int main(void) {
 			rl = RLE(ZigZag_V, RL);
 			prev_DC_V = Encode(RL, rl, code, prev_DC_V);
 			strcat(writecode, code);
-		}
-
-	
-	
-	
+		}	
 
 	return 0;
 }
